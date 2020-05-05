@@ -12,8 +12,8 @@ const (
 )
 
 type SparseFile struct {
-	fileBytes []SparseByte
-	size uint64
+	FileBytes []SparseByte
+	Size      uint64
 }
 type SparseByte struct {
 	Position uint64
@@ -23,30 +23,30 @@ type SparseByte struct {
 // Computes the CRC32 for a file that is mostly null bytes, using multiplicative properties of taking mod.
 func IEEESparse (file SparseFile) uint32 {
 	position2Index := map[uint64]int{}
-	for i , v := range(file.fileBytes) {
-		file.fileBytes[i].Value = bits.Reverse8(v.Value)
+	for i , v := range(file.FileBytes) {
+		file.FileBytes[i].Value = bits.Reverse8(v.Value)
 		position2Index[v.Position] = i
 	}
 	for i := 0; i < 4; i++ {
 		index, ok := position2Index[uint64(i)]
 		if !ok {
-			file.fileBytes = append(file.fileBytes, SparseByte{Position: uint64(i), Value: 0xFF})
+			file.FileBytes = append(file.FileBytes, SparseByte{Position: uint64(i), Value: 0xFF})
 		} else {
-			file.fileBytes[index].Value ^= 0xFF
+			file.FileBytes[index].Value ^= 0xFF
 		}
 	}
 
 	// Add padding
-	file.size += 4
+	file.Size += 4
 	newReminder := bits.Reverse32(reminderIEEESparse(file))
 
 	return newReminder ^ 0xFFFFFFFF
 }
 
 func reminderIEEESparse(file SparseFile) uint32 {
-	size := file.size
+	size := file.Size
 	result := uint32(0)
-	for _, sparseByte := range file.fileBytes {
+	for _, sparseByte := range file.FileBytes {
 		power := size - 1 - sparseByte.Position
 		valueCoeff := reminderIEEE([]byte{0, 0, 0, sparseByte.Value})
 		carry := uint32(1)
@@ -107,8 +107,8 @@ func uint64ToArray (a uint64) []byte {
 
 
 func (f SparseFile) toBytes () []byte {
-	slice := make([]byte, f.size)
-	for _, v := range f.fileBytes {
+	slice := make([]byte, f.Size)
+	for _, v := range f.FileBytes {
 		slice[v.Position] = v.Value
 	}
 	return slice
